@@ -95,11 +95,12 @@ dev_tracks = [
 ]
 
 
+import asyncio
 import re
 import sys
 import urllib
 
-import requests
+import aiohttp
 import spotipy
 from dotenv import load_dotenv
 from fuzzywuzzy import fuzz, process
@@ -108,6 +109,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from spotipy.oauth2 import SpotifyClientCredentials
+from tqdm.asyncio import tqdm, tqdm_asyncio
 
 load_dotenv()
 
@@ -150,7 +152,7 @@ def get_spotify_track_ids(sp, playlist_id):
     return track_ids
 
 
-def get_spotify_track_info(sp, track_ids):
+async def get_spotify_track_info(sp, track_ids):
     print("Requesting track info.")
 
     tracks = []
@@ -273,37 +275,42 @@ def find_best_match(pref_file, found_tracks, choices):
     return found_tracks[best_matches[0]["index"]], best_matches[0]["confidence"]
 
 
-def deemix_track_search(deemix_url, track, expanded):
-    if expanded:
-        print(f"Searching by title and artists.")
-        search_terms = " ".join([track["name"], *track["artists"]])
-    else:
-        print(f"Searching by title only.")
-        search_terms = track["name"]
+async def deemix_track_search(session, deemix_url, track, expanded):
+    try:
+        if expanded:
+            search_terms = " ".join([track["name"], *track["artists"]])
+        else:
+            search_terms = track["name"]
 
-    search_term = urllib.parse.quote_plus(search_terms)
+        search_term = urllib.parse.quote_plus(search_terms)
 
-    response = requests.get(f"{deemix_url}/api/mainSearch?term={search_term}")
-    found_tracks = response.json()["TRACK"]["data"]
+        async with session.get(
+            f"{deemix_url}/api/mainSearch?term={search_term}"
+        ) as resp:
+            json_data = await resp.json()
+            found_tracks = json_data["TRACK"]["data"]
 
-    sorted_tracks = sort_deemix_tracks(track, found_tracks)
-    return found_tracks, sorted_tracks
+            sorted_tracks = sort_deemix_tracks(track, found_tracks)
+            return found_tracks, sorted_tracks
+    except Exception as e:
+        print("Unable to get url {} due to {}.".format(track["name"], e.__class__))
+        return [], []
 
 
-def find_track_on_deemix(deemix_url, pref_file, track):
-    print(f"Searching deemix for \"{track['name']}\".")
-
+async def find_track_on_deemix(session, deemix_url, pref_file, track):
     # Sometimes artist names confuse the Deemix search, in these cases try to search only by title
     # Confidence threshold of 75 is an arbitrary magic number
-    found_tracks, sorted_tracks = deemix_track_search(deemix_url, track, expanded=True)
+    found_tracks, sorted_tracks = await deemix_track_search(
+        session, deemix_url, track, expanded=True
+    )
     if len(found_tracks) == 0 or sorted_tracks[0]["confidence"] < 75:
-        found_tracks, sorted_tracks = deemix_track_search(
-            deemix_url, track, expanded=False
+        found_tracks, sorted_tracks = await deemix_track_search(
+            session, deemix_url, track, expanded=False
         )
 
     # Confidence threshold of 60 is an arbitrary magic number
     if len(found_tracks) == 0 or sorted_tracks[0]["confidence"] < 60:
-        return [], 0
+        return {"SNG_TITLE": track["name"]}, 0
 
     return find_best_match(pref_file, found_tracks, sorted_tracks)
 
@@ -314,15 +321,25 @@ def add_to_deemix_cue(deemix, deemix_url, track):
     selenium_post(deemix, f"{deemix_url}/api/addToQueue", params=data)
 
 
-def convert_tracks_to_deezer(deemix_url, pref_file, tracks):
+async def convert_tracks_to_deezer(deemix_url, pref_file, tracks):
     best_matches = []
 
-    for track in tracks:
-        best_match, confidence = find_track_on_deemix(deemix_url, pref_file, track)
-        if best_match == []:
-            print(f"Couldn't find track.")
+    print("Looking for songs in Deemix:")
+
+    async with aiohttp.ClientSession() as session:
+        ret = await tqdm_asyncio.gather(
+            *(
+                find_track_on_deemix(session, deemix_url, pref_file, track)
+                for track in tracks
+            )
+        )
+    for best_match, confidence in ret:
+        if confidence == 0:
+            print(f"Couldn't find {best_match['SNG_TITLE']}.")
         else:
-            print(f"Found track with {round(confidence)}% confidence.\n")
+            print(
+                f"Found {best_match['SNG_TITLE']} with {round(confidence)}% confidence."
+            )
             best_matches.append(best_match)
 
     return best_matches
@@ -338,17 +355,21 @@ def download_tracks(deezer_matches):
     driver.quit()
 
 
+async def main(sp, deemix_url, pref_file):
+    # playlist_id = get_spotify_playlist_id()
+    # playlist_id = "spotify:playlist:6LSNeL6venXT0Cqx0JO5c0"
+
+    # track_ids = get_spotify_track_ids(sp, playlist_id)
+    # tracks = get_spotify_track_info(sp, track_ids)
+    tracks = dev_tracks
+    deezer_matches = await convert_tracks_to_deezer(deemix_url, pref_file, tracks)
+    # download_tracks(deezer_matches)
+
+
 if __name__ == "__main__":
     deemix_url = "http://127.0.0.1:6595"
     pref_file = "mp3_320"
 
     sp = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials())
 
-    # playlist_id = get_playlist_id()
-    # playlist_id = "spotify:playlist:6LSNeL6venXT0Cqx0JO5c0"
-
-    # track_ids = get_track_ids(sp, playlist_id)
-    # tracks = get_track_info(sp, track_ids)
-    tracks = dev_tracks
-    deezer_matches = convert_tracks_to_deezer(deemix_url, pref_file, tracks)
-    # download_tracks(deezer_matches)
+    asyncio.run(main(sp, deemix_url, pref_file))
