@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+
+[build-system]
+requires = ["hatchling", "hatch-requirements-txt"]
+build-backend = "hatchling.build"
+
+[project]
+name = "spoteemix"
+version = "0.1"
+description = "Script to download Spotify playlists using Deemix."
+readme = "README.md"
+authors = [
+  { name = "Mihkel Martin Kasterpalu", email = "github@kasterpalu.ee" },
+]
+dynamic = ["dependencies"]
+requires-python = "~=3.8"
+
+[project.urls]
+homepage = "https://github.com/MihkelMK/spoteemix"
+
+[project.scripts]
+spoteemix = "spoteemix.__main__:cli"
+
+[tool.hatch.build.targets.wheel]
+sources = ["src"]
+
+[tool.hatch.metadata.hooks.requirements_txt]
+files = ["requirements.txt"]

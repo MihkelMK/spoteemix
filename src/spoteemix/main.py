@@ -1,100 +1,3 @@
-dev_tracks = [
-    {"artists": ["Rome in Silver"], "name": "Waiting..."},
-    {"artists": ["wes mills"], "name": "nintendo 64"},
-    {"artists": ["Disco Lines", "demotapes"], "name": "RWEOK?"},
-    {"artists": ["Andruss"], "name": "Frikitona"},
-    {
-        "artists": [
-            "Kerri Chandler",
-            "Dennis Quin",
-            "Troy Denari",
-            "Faster Horses",
-        ],
-        "name": "You Are In My System - Faster Horses Sport Mix",
-    },
-    {"artists": ["Josh Dorey"], "name": "Feed Your Soul"},
-    {"artists": ["Starjunk 95"], "name": "Grimestar"},
-    {"artists": ["Duskus"], "name": "Cut"},
-    {
-        "artists": ["Paul Woolford", "LF SYSTEM", "Shayan"],
-        "name": "In My Head (feat. Shayan)",
-    },
-    {"artists": ["LF SYSTEM"], "name": "Hungry (For Love)"},
-    {
-        "artists": ["LF SYSTEM", "Tommy Villiers"],
-        "name": "Afraid To Feel - Tommy Villiers Remix",
-    },
-    {"artists": ["heynat"], "name": "poyo!"},
-    {"artists": ["TWAN"], "name": "Carry On"},
-    {"artists": ["Niko The Kid", "Benson"], "name": "Hella Good"},
-    {"artists": ["Dylan & Harry", "Party Favor", "Baauer"], "name": "Smoke"},
-    {"artists": ["Oppidan"], "name": "You & I"},
-    {"artists": ["Conducta"], "name": "3FALL"},
-    {"artists": ["Square Perception"], "name": "Alone"},
-    {"artists": ["SVDKO"], "name": "DAYJOB"},
-    {"artists": ["Vintage Culture", "Maverick Sabre", "Tom Breu"], "name": "Weak"},
-    {"artists": ["Mézigue"], "name": "Du son pour les gars sûrs"},
-    {"artists": ["Diffrent"], "name": "A Little Closer"},
-    {"artists": ["ZPKF", "Darzak"], "name": "Cloods - Darzack Remix"},
-    {"artists": ["Diffrent"], "name": "Happiness"},
-    {"artists": ["JEV"], "name": "AINT EASIER"},
-    {"artists": ["JEV"], "name": "DREAMER"},
-    {"artists": ["JEV"], "name": "be free"},
-    {"artists": ["JEV"], "name": "4U"},
-    {"artists": ["JEV"], "name": "COMPLICATED"},
-    {"artists": ["ESCE"], "name": "Come A Little Closer - VIP Mix"},
-    {
-        "artists": ["LOSTBOYJAY", "Billy Raffoul"],
-        "name": "Say Goodbye (feat. Billy Raffoul)",
-    },
-    {"artists": ["Class Fools"], "name": "Some Nights"},
-    {"artists": ["MANT", "HAYLA"], "name": "Lonely Days"},
-    {
-        "artists": ["Riton", "Kah-Lo", "GEE LEE"],
-        "name": "Fake ID (Coke & Rum Remix)",
-    },
-    {
-        "artists": ["Flex (UK)", "Nate Dogg"],
-        "name": "6 In the Morning (feat. Nate Dogg)",
-    },
-    {"artists": ["Malugi"], "name": "Reach Out"},
-    {"artists": ["t e s t p r e s s"], "name": "U"},
-    {"artists": ["Belters Only", "Sonny Fodera", "Jazzy"], "name": "Life Lesson"},
-    {"artists": ["Higgo", "mustbejohn"], "name": "Pretty Little Raver"},
-    {
-        "artists": ["John Summit", "Sub Focus", "Julia Church"],
-        "name": "Go Back (feat. Julia Church)",
-    },
-    {"artists": ["Lemtom"], "name": "Bancroft"},
-    {"artists": ["Sosa UK"], "name": "Your Love"},
-    {"artists": ["DJ HEARTSTRING", "Narciss"], "name": "While U Sleep"},
-    {"artists": ["Torren Foot", "Azealia Banks"], "name": "New Bottega"},
-    {"artists": ["EFESIAN"], "name": "Can't Be Stopped"},
-    {"artists": ["Oden & Fatzo", "Camden Cox"], "name": "Lady Love"},
-    {
-        "artists": ["Reel Mood", "Taiki Nulight", "Jack Beats"],
-        "name": "Every Night",
-    },
-    {"artists": ["Palace"], "name": "Vision"},
-    {"artists": ["Murphy's Law (UK)"], "name": "Need To Know"},
-    {"artists": ["it's murph"], "name": "123 Round Again"},
-    {"artists": ["Bonkers"], "name": "Pilsplaat"},
-    {"artists": ["Nikita, the Wicked"], "name": "The Auction"},
-    {"artists": ["Quarterhead", "SESA"], "name": "You Will See"},
-    {"artists": ["Skeptic", "Sophia Violet"], "name": "Want Me"},
-    {
-        "artists": ["Artemas", "southstar"],
-        "name": "i like the way you kiss me - southstar remix",
-    },
-    {"artists": ["Dusky", "Denham Audio"], "name": "Everything I Do"},
-    {"artists": ["Club Angel"], "name": "Control Dem"},
-    {"artists": ["Justin Jay"], "name": "Monster"},
-    {"artists": ["Skin On Skin"], "name": "Magic"},
-    {"artists": ["Skeptic"], "name": "Bring Me Home"},
-    {"artists": ["Disclosure"], "name": "She’s Gone, Dance On"},
-]
-
-
 import asyncio
 import re
 import sys
@@ -102,7 +5,6 @@ import urllib
 
 import aiohttp
 import spotipy
-from dotenv import load_dotenv
 from fuzzywuzzy import fuzz, process
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -112,13 +14,10 @@ from spotipy.oauth2 import SpotifyClientCredentials
 from tqdm.asyncio import tqdm_asyncio
 from tqdm.auto import tqdm
 
-load_dotenv()
-
 pl_regex = re.compile(r".*\/playlist\/(\w*)(\?.*)?")
 
 
-def get_spotify_playlist_id():
-    pl_link = input("Enter the playlist link: ")
+def get_spotify_playlist_id(pl_link):
     if not (pl_match := re.search(pl_regex, pl_link)):
         sys.exit()
 
@@ -126,7 +25,7 @@ def get_spotify_playlist_id():
     return f"spotify:playlist:{pl_id}"
 
 
-def get_spotify_playlist_info(pl_id):
+def get_spotify_playlist_info(sp, pl_id):
     playlist_info = sp.playlist(pl_id)
     print(
         f"\nDownloading {playlist_info['name']} by {playlist_info['owner']['display_name']}."
@@ -134,7 +33,6 @@ def get_spotify_playlist_info(pl_id):
 
 
 def get_spotify_track_ids(sp, playlist_id):
-    # print("Requesting track ids.")
     offset = 0
 
     track_ids = []
@@ -352,7 +250,7 @@ async def convert_tracks_to_deezer(deemix_url, pref_file, tracks):
     return best_matches, not_found
 
 
-def deemix_tracks_to_cue(deezer_matches):
+def deemix_tracks_to_cue(deemix_url, deezer_matches):
     driver = initiate_selenium(deemix_url)
 
     for match in tqdm(
@@ -371,23 +269,22 @@ async def parse_playlist(sp, playlist_id):
     return tracks
 
 
-if __name__ == "__main__":
-    deemix_url = "http://127.0.0.1:6595"
-    pref_file = "mp3_320"
+def main(client_id, client_secret, deemix_url, pref_file, playlist_link):
+    sp = spotipy.Spotify(
+        client_credentials_manager=SpotifyClientCredentials(
+            client_id=client_id, client_secret=client_secret
+        )
+    )
 
-    sp = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials())
-
-    playlist_id = get_spotify_playlist_id()
-    get_spotify_playlist_info(playlist_id)
-    # playlist_id = "spotify:playlist:6LSNeL6venXT0Cqx0JO5c0"
+    playlist_id = get_spotify_playlist_id(playlist_link)
+    get_spotify_playlist_info(sp, playlist_id)
 
     tracks = asyncio.run(parse_playlist(sp, playlist_id))
-    # tracks = dev_tracks
 
     deezer_matches, no_matches = asyncio.run(
         convert_tracks_to_deezer(deemix_url, pref_file, tracks)
     )
-    deemix_tracks_to_cue(deezer_matches)
+    deemix_tracks_to_cue(deemix_url, deezer_matches)
 
     print(
         f"\n{len(deezer_matches)}/{len(tracks)} tracks downloaded.\n\nThese songs couldn't be found:"
