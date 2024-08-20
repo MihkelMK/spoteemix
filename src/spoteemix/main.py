@@ -28,9 +28,9 @@ def get_spotify_playlist_id(pl_link):
 
 def get_spotify_playlist_info(sp, pl_id):
     playlist_info = sp.playlist(pl_id)
-    click.echo(
-        f"\nDownloading {playlist_info['name']} by {playlist_info['owner']['display_name']}."
-    )
+    click.secho(f"\nDownloading {playlist_info['name']}", fg="blue", nl=False)
+    click.echo(" by ", nl=False)
+    click.secho(f"{playlist_info['owner']['display_name']}.", fg="magenta")
 
 
 def get_spotify_track_ids(sp, playlist_id):
@@ -75,7 +75,8 @@ async def get_spotify_track_info(sp, track_ids):
     for track_id in tqdm(
         track_ids,
         desc="Track info from Spotify",
-        bar_format="{l_bar} {bar} {n_fmt}/{total_fmt}",
+        bar_format="{desc}: {percentage:3.0f}% {bar} {n_fmt}/{total_fmt}",
+        ascii="⣿⣦⣀",
     ):
         tracks.append(spotify_track_query(sp, track_id))
     return tracks
@@ -201,7 +202,10 @@ async def deemix_track_search(session, deemix_url, track, expanded):
             sorted_tracks = sort_deemix_tracks(track, found_tracks)
             return found_tracks, sorted_tracks
     except Exception as e:
-        click.echo("Unable to get url {} due to {}.".format(track["name"], e.__class__))
+        click.echo(
+            "Unable to get url {} due to {}.".format(track["name"], e.__class__),
+            err=True,
+        )
         return [], []
 
 
@@ -238,8 +242,9 @@ async def convert_tracks_to_deezer(deemix_url, pref_file, tracks):
                 find_track_on_deemix(session, deemix_url, pref_file, track)
                 for track in tracks
             ),
-            desc="Searching on Deemix",
-            bar_format="{l_bar} {bar} {n_fmt}/{total_fmt}",
+            desc="Finding songs on Deemix",
+            bar_format="{desc}: {percentage:3.0f}% {bar} {n_fmt}/{total_fmt}",
+            ascii="⣿⣦⣀",
         )
 
     for best_match, confidence in ret:
@@ -257,7 +262,8 @@ def deemix_tracks_to_cue(deemix_url, deezer_matches):
     for match in tqdm(
         deezer_matches,
         desc="Adding to download queue",
-        bar_format="{l_bar} {bar} {n_fmt}/{total_fmt}",
+        bar_format="{desc}: {percentage:3.0f}% {bar} {n_fmt}/{total_fmt}",
+        ascii="⣿⣦⣀",
     ):
         add_to_deemix_cue(driver, deemix_url, match)
 
@@ -287,9 +293,12 @@ def main(client_id, client_secret, deemix_url, pref_file, playlist_link):
     )
     deemix_tracks_to_cue(deemix_url, deezer_matches)
 
-    click.echo(
-        f"\n{len(deezer_matches)}/{len(tracks)} tracks downloaded.\n\nThese songs couldn't be found:"
-    )
+    click.secho(f"\n{len(deezer_matches)}/{len(tracks)}", fg="green", nl=False)
+    click.echo(" tracks downloaded.\n")
+    click.secho("These songs couldn't be found:", fg="red")
 
     for track in no_matches:
-        click.echo(f"{track['name']} - {', '.join(track['artists'])}")
+        click.secho(f"{track['name']}", fg="blue", nl=False)
+
+        click.echo(" - ", nl=False)
+        click.secho(f"{', '.join(track['artists'])}", fg="magenta")
