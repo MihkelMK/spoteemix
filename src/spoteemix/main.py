@@ -4,6 +4,7 @@ import sys
 import urllib
 
 import aiohttp
+import click
 import spotipy
 from fuzzywuzzy import fuzz, process
 from selenium import webdriver
@@ -27,7 +28,7 @@ def get_spotify_playlist_id(pl_link):
 
 def get_spotify_playlist_info(sp, pl_id):
     playlist_info = sp.playlist(pl_id)
-    print(
+    click.echo(
         f"\nDownloading {playlist_info['name']} by {playlist_info['owner']['display_name']}."
     )
 
@@ -53,7 +54,7 @@ def get_spotify_track_ids(sp, playlist_id):
         for item in response["items"]:
             track_ids.append(item["track"]["id"])
 
-    print(f"Ids gathered for {len(track_ids)} songs.\n")
+    click.echo(f"Ids gathered for {len(track_ids)} songs.\n")
     return track_ids
 
 
@@ -200,7 +201,7 @@ async def deemix_track_search(session, deemix_url, track, expanded):
             sorted_tracks = sort_deemix_tracks(track, found_tracks)
             return found_tracks, sorted_tracks
     except Exception as e:
-        print("Unable to get url {} due to {}.".format(track["name"], e.__class__))
+        click.echo("Unable to get url {} due to {}.".format(track["name"], e.__class__))
         return [], []
 
 
@@ -286,9 +287,9 @@ def main(client_id, client_secret, deemix_url, pref_file, playlist_link):
     )
     deemix_tracks_to_cue(deemix_url, deezer_matches)
 
-    print(
+    click.echo(
         f"\n{len(deezer_matches)}/{len(tracks)} tracks downloaded.\n\nThese songs couldn't be found:"
     )
 
     for track in no_matches:
-        print(f"{track['name']} - {', '.join(track['artists'])}")
+        click.echo(f"{track['name']} - {', '.join(track['artists'])}")
