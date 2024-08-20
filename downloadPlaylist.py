@@ -126,8 +126,15 @@ def get_spotify_playlist_id():
     return f"spotify:playlist:{pl_id}"
 
 
+def get_spotify_playlist_info(pl_id):
+    playlist_info = sp.playlist(pl_id)
+    print(
+        f"\nDownloading {playlist_info['name']} by {playlist_info['owner']['display_name']}."
+    )
+
+
 def get_spotify_track_ids(sp, playlist_id):
-    print("Requesting track ids.")
+    # print("Requesting track ids.")
     offset = 0
 
     track_ids = []
@@ -370,8 +377,9 @@ if __name__ == "__main__":
 
     sp = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials())
 
-    # playlist_id = get_spotify_playlist_id()
-    playlist_id = "spotify:playlist:6LSNeL6venXT0Cqx0JO5c0"
+    playlist_id = get_spotify_playlist_id()
+    get_spotify_playlist_info(playlist_id)
+    # playlist_id = "spotify:playlist:6LSNeL6venXT0Cqx0JO5c0"
 
     tracks = asyncio.run(parse_playlist(sp, playlist_id))
     # tracks = dev_tracks
