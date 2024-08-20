@@ -1,3 +1,5 @@
+import re
+
 import click
 
 from spoteemix.config_helper import load_configs
@@ -41,11 +43,28 @@ DEFAULT_CONFIG["help_option_names"] = ["-h", "--help"]
 )
 @click.pass_context
 def cli(ctx, playlist, deemix, format, client_id, client_secret):
-    ctx.ensure_object(dict)
     """Download Spotify playlist using Deemix.
 
     PLAYLIST - the URL of the Spotify playlist to download.
     """
+    ctx.ensure_object(dict)
+
+    if "http" not in deemix:
+        raise click.UsageError(
+            "Deemix URL doesn't start with http(s) or is otherwise malformed."
+        )
+
+    if "http" not in playlist:
+        raise click.UsageError(
+            "Playlist URL doesn't start with http(s) or is otherwise malformed."
+        )
+
+    if len(client_id) != 32 or not client_id.isalnum():
+        raise click.UsageError("Malformed client_id.")
+
+    if len(client_secret) != 32 or not client_secret.isalnum():
+        raise click.UsageError("Malformed client_secret.")
+
     main(
         client_id=client_id,
         client_secret=client_secret,
