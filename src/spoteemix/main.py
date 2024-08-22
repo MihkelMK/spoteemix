@@ -73,10 +73,15 @@ def spotify_track_query(sp, track_id):
 async def get_spotify_track_info(sp, track_ids):
     tracks = []
 
+    # Digits of total track count, for n_fmt padding
+    total_digits = str(len(str(len(track_ids))))
+
     for track_id in tqdm(
         track_ids,
         desc="Track info from Spotify",
-        bar_format="{desc}:  {percentage:3.0f}% {bar} {n_fmt}/{total_fmt}",
+        bar_format="{desc}:  {percentage:3.0f}% {bar} {n:"
+        + total_digits
+        + ".0f}/{total_fmt}",
         ascii="⣿⣦⣀",
     ):
         tracks.append(spotify_track_query(sp, track_id))
@@ -251,6 +256,9 @@ async def convert_tracks_to_deezer(deemix_url, pref_file, tracks):
     best_matches = []
     not_found = []
 
+    # Digits of total track count, for n_fmt padding
+    total_digits = str(len(str(len(tracks))))
+
     async with aiohttp.ClientSession() as session:
         ret = await tqdm_asyncio.gather(
             *(
@@ -258,7 +266,9 @@ async def convert_tracks_to_deezer(deemix_url, pref_file, tracks):
                 for track in tracks
             ),
             desc="Finding songs on Deemix",
-            bar_format="{desc}:  {percentage:3.0f}% {bar} {n_fmt}/{total_fmt}",
+            bar_format="{desc}:  {percentage:3.0f}% {bar} {n:"
+            + total_digits
+            + ".0f}/{total_fmt}",
             ascii="⣿⣦⣀",
         )
 
@@ -274,10 +284,15 @@ async def convert_tracks_to_deezer(deemix_url, pref_file, tracks):
 def deemix_tracks_to_cue(deemix_url, deezer_matches):
     driver = initiate_selenium(deemix_url)
 
+    # Digits of total track count, for n_fmt padding
+    total_digits = str(len(str(len(deezer_matches))))
+
     for match in tqdm(
         deezer_matches,
         desc="Adding to download queue",
-        bar_format="{desc}: {percentage:3.0f}% {bar} {n_fmt}/{total_fmt}",
+        bar_format="{desc}: {percentage:3.0f}% {bar} {n:"
+        + total_digits
+        + ".0f}/{total_fmt}",
         ascii="⣿⣦⣀",
     ):
         add_to_deemix_cue(driver, deemix_url, match)
