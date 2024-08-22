@@ -76,7 +76,7 @@ async def get_spotify_track_info(sp, track_ids):
     for track_id in tqdm(
         track_ids,
         desc="Track info from Spotify",
-        bar_format="{desc}: {percentage:3.0f}% {bar} {n_fmt}/{total_fmt}",
+        bar_format="{desc}:  {percentage:3.0f}% {bar} {n_fmt}/{total_fmt}",
         ascii="⣿⣦⣀",
     ):
         tracks.append(spotify_track_query(sp, track_id))
@@ -255,7 +255,7 @@ async def convert_tracks_to_deezer(deemix_url, pref_file, tracks):
                 for track in tracks
             ),
             desc="Finding songs on Deemix",
-            bar_format="{desc}: {percentage:3.0f}% {bar} {n_fmt}/{total_fmt}",
+            bar_format="{desc}:  {percentage:3.0f}% {bar} {n_fmt}/{total_fmt}",
             ascii="⣿⣦⣀",
         )
 
