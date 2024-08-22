@@ -10,7 +10,7 @@ from fuzzywuzzy import fuzz, process
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support.wait import TimeoutException, WebDriverWait
 from spotipy.oauth2 import SpotifyClientCredentials
 from tqdm.asyncio import tqdm_asyncio
 from tqdm.auto import tqdm
@@ -121,7 +121,7 @@ def initiate_selenium(deemix_url):
     driver.get(deemix_url)
 
     try:
-        WebDriverWait(driver, 10).until(
+        WebDriverWait(driver, 4).until(
             EC.presence_of_element_located(
                 (
                     By.XPATH,
@@ -129,8 +129,11 @@ def initiate_selenium(deemix_url):
                 )
             )
         )
-    finally:
-        return driver
+    except TimeoutException:
+        raise click.ClickException(
+            f"Couldn't log in to Deemix, check if your ARL is up to date at {deemix_url}."
+        )
+    return driver
 
 
 def sort_deemix_tracks(track, found_tracks):
