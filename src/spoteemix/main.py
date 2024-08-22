@@ -307,10 +307,12 @@ def main(client_id, client_secret, deemix_url, pref_file, playlist_link):
 
     click.secho(f"\n{len(deezer_matches)}/{len(tracks)}", fg="green", nl=False)
     click.echo(" tracks downloaded.\n")
-    click.secho("These songs couldn't be found:", fg="red")
 
-    for track in no_matches:
-        click.secho(f"{track['name']}", fg="blue", nl=False)
+    if len(no_matches) > 0:
+        click.secho("These songs couldn't be found:", fg="red")
 
-        click.echo(" - ", nl=False)
-        click.secho(f"{', '.join(track['artists'])}", fg="magenta")
+        for track in no_matches:
+            click.secho(f"{track['name']}", fg="blue", nl=False)
+
+            click.echo(" - ", nl=False)
+            click.secho(f"{', '.join(track['artists'])}", fg="magenta")
