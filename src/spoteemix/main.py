@@ -16,6 +16,7 @@ from tqdm.asyncio import tqdm_asyncio
 from tqdm.auto import tqdm
 
 pl_regex = re.compile(r".*\/playlist\/(\w*)(\?.*)?")
+short_title_regex = re.compile(r"(\(.+\))")
 
 
 def get_spotify_playlist_id(pl_link):
@@ -184,12 +185,17 @@ def find_best_match(pref_file, found_tracks, choices):
     return found_tracks[best_matches[0]["index"]], best_matches[0]["confidence"]
 
 
-async def deemix_track_search(session, deemix_url, track, expanded):
+async def deemix_track_search(session, deemix_url, track, expanded, short_title=False):
     try:
-        if expanded:
-            search_terms = " ".join([track["name"], *track["artists"]])
+        if short_title:
+            title = re.sub(short_title_regex, "", track["name"])
         else:
-            search_terms = track["name"]
+            title = track["name"]
+
+        if expanded:
+            search_terms = " ".join([title, *track["artists"]])
+        else:
+            search_terms = title
 
         search_term = urllib.parse.quote_plus(search_terms)
 
@@ -218,6 +224,12 @@ async def find_track_on_deemix(session, deemix_url, pref_file, track):
     if len(found_tracks) == 0 or sorted_tracks[0]["confidence"] < 75:
         found_tracks, sorted_tracks = await deemix_track_search(
             session, deemix_url, track, expanded=False
+        )
+
+    # Confidence threshold of 60 is an arbitrary magic number
+    if len(found_tracks) == 0 or sorted_tracks[0]["confidence"] < 60:
+        found_tracks, sorted_tracks = await deemix_track_search(
+            session, deemix_url, track, expanded=True, short_title=True
         )
 
     # Confidence threshold of 60 is an arbitrary magic number
