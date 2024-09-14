@@ -2,12 +2,14 @@ import asyncio
 import re
 import sys
 import urllib
+from time import sleep
 
 import aiohttp
 import click
 import spotipy
 from fuzzywuzzy import fuzz, process
 from selenium import webdriver
+from selenium.common.exceptions import NoAlertPresentException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import TimeoutException, WebDriverWait
@@ -88,13 +90,13 @@ async def get_spotify_track_info(sp, track_ids):
     return tracks
 
 
-def selenium_post(driver, path, params):
+def selenium_post(driver, deemix_url, path, params):
     driver.execute_script(
         """
-    function post(path, params, method='post') {
+    function post(url, path, params, method='post') {
         const form = document.createElement('form');
         form.method = method;
-        form.action = path;
+        form.action = url + path;
     
         for (const key in params) {
             if (params.hasOwnProperty(key)) {
@@ -105,17 +107,31 @@ def selenium_post(driver, path, params):
     
             form.appendChild(hiddenField);
         }
-        }
-    
-        document.body.appendChild(form);
-        form.submit();
+    }
+
+    document.body.appendChild(form);
+    form.submit();
     }
     
-    post(arguments[1], arguments[0]);
+    post(arguments[0], arguments[1], arguments[2]);
     """,
-        params,
+        deemix_url,
         path,
+        params,
     )
+    # Sometimes when connecting with http, an alert dialog appears
+    try:
+        WebDriverWait(driver, 2).until(
+            EC.alert_is_present(),
+            "Timed out waiting for PA creation " + "confirmation popup to appear.",
+        )
+
+        alert = driver.switch_to.alert
+        alert.accept()
+    except TimeoutException:
+        pass
+    except NoAlertPresentException:
+        pass
 
 
 def initiate_selenium(deemix_url):
@@ -126,7 +142,7 @@ def initiate_selenium(deemix_url):
     driver.get(deemix_url)
 
     try:
-        WebDriverWait(driver, 4).until(
+        WebDriverWait(driver, 10).until(
             EC.presence_of_element_located(
                 (
                     By.XPATH,
@@ -249,7 +265,7 @@ async def find_track_on_deemix(session, deemix_url, pref_file, track):
 
 def add_to_deemix_cue(deemix, deemix_url, track):
     data = {"bitrate": "null", "url": f"https://www.deezer.com/track/{track['SNG_ID']}"}
-    selenium_post(deemix, f"{deemix_url}/api/addToQueue", params=data)
+    selenium_post(deemix, deemix_url, "/api/addToQueue", params=data)
 
 
 async def convert_tracks_to_deezer(deemix_url, pref_file, tracks):
@@ -296,6 +312,7 @@ def deemix_tracks_to_cue(deemix_url, deezer_matches):
         ascii="⣿⣦⣀",
     ):
         add_to_deemix_cue(driver, deemix_url, match)
+        sleep(0.5)
 
     driver.quit()
 
