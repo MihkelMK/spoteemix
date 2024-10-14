@@ -323,7 +323,7 @@ async def parse_playlist(sp, playlist_id):
     return tracks
 
 
-def main(client_id, client_secret, deemix_url, pref_file, playlist_link):
+def sp_dmx_convert(client_id, client_secret, deemix_url, pref_file, playlist_link):
     sp = spotipy.Spotify(
         client_credentials_manager=SpotifyClientCredentials(
             client_id=client_id, client_secret=client_secret
