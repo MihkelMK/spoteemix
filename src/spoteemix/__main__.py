@@ -1,6 +1,6 @@
 import click
 
-from spoteemix.commands import fts, std
+from spoteemix.commands import convert, utils
 from spoteemix.config_helper import load_configs
 from spoteemix.helpers.command_helpers import SpotifyClient
 
@@ -38,5 +38,5 @@ def cli(ctx, client_id, client_secret):
     pass
 
 
-cli.add_command(std)
-cli.add_command(fts)
+cli.add_command(convert)
+cli.add_command(utils)
