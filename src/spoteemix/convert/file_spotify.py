@@ -22,7 +22,7 @@ def sort_spotify_tracks(track, found_tracks):
                 name = artist["name"]
                 matching_artist = process.extractOne(name, track["artists"])
 
-                if matching_artist != None:
+                if matching_artist is not None:
                     artist_matches.append(matching_artist)
 
             artist_matches = sorted(artist_matches, key=lambda x: -x[1])

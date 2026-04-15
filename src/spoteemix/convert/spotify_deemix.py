@@ -150,10 +150,10 @@ def initiate_selenium(deemix_url):
                 )
             )
         )
-    except TimeoutException:
+    except TimeoutException as e:
         raise click.ClickException(
             f"Couldn't log in to Deemix, check if your ARL is up to date at {deemix_url}."
-        )
+        ) from e
     return driver
 
 

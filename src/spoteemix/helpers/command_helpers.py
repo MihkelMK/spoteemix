@@ -1,7 +1,7 @@
 import click
 
 
-class SpotifyClient(object):
+class SpotifyClient:
     def __init__(self, id=None, secret=None):
         self.id = id
         self.secret = secret
