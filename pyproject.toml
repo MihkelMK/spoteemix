@@ -46,3 +46,6 @@ extend-select = ["I", "UP", "B"]
 pythonVersion = "3.14"
 typeCheckingMode = "strict"
 reportMissingTypeStubs = "none"
+
+[dependency-groups]
+dev = ["basedpyright>=1.39.0", "ruff>=0.15.9"]
