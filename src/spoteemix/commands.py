@@ -4,7 +4,7 @@ import click
 
 from spoteemix.convert import file_to_spotify, spotify_to_deemix
 from spoteemix.helpers.command_helpers import SpotifyClient, pass_spotify
-from spoteemix.utils import shuffle_spotify
+from spoteemix.utils import albums_from_playlist, shuffle_spotify
 
 
 @click.group()
@@ -110,4 +110,20 @@ def sp_shuffle(spotify: SpotifyClient, playlist: str, iter: int) -> None:
     )
 
 
+@click.command()
+@click.argument("playlist", type=click.STRING)
+@pass_spotify
+def albums(spotify: SpotifyClient, playlist: str) -> None:
+    """Shuffle the order of tracks in a Spotify playlist.
+
+    PLAYLIST - the URL of the Spotify playlist to download.
+    """
+    albums_from_playlist.main(
+        client_id=spotify.id,
+        client_secret=spotify.secret,
+        playlist_link=playlist,
+    )
+
+
 utils.add_command(sp_shuffle)
+utils.add_command(albums)
