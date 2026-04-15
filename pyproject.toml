@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
 
-[build-system]
-requires = ["hatchling", "hatch-requirements-txt"]
-build-backend = "hatchling.build"
-
 [project]
 name = "spoteemix"
 version = "0.1"
@@ -12,8 +8,16 @@ readme = "README.md"
 authors = [
   { name = "Mihkel Martin Kasterpalu", email = "github@kasterpalu.ee" },
 ]
-dynamic = ["dependencies"]
-requires-python = "~=3.8"
+requires-python = ">=3.14.0"
+dependencies = [
+    "aiohttp>=3.13.5",
+    "click>=8.3.2",
+    "fuzzywuzzy>=0.18.0",
+    "python-levenshtein>=0.27.3",
+    "selenium>=4.41.0",
+    "spotipy>=2.26.0",
+    "tqdm>=4.67.3",
+]
 
 [project.urls]
 homepage = "https://github.com/MihkelMK/spoteemix"
@@ -21,8 +25,23 @@ homepage = "https://github.com/MihkelMK/spoteemix"
 [project.scripts]
 spoteemix = "spoteemix.__main__:cli"
 
-[tool.hatch.build.targets.wheel]
-sources = ["src"]
+[build-system]
+requires = ["uv_build>=0.11.0,<0.12.0"]
+build-backend = "uv_build"
 
-[tool.hatch.metadata.hooks.requirements_txt]
-files = ["requirements.txt"]
+[tool.uv.build-backend]
+module-root = "src"
+
+[tool.uv]
+exclude-newer = "1 week"
+compile-bytecode = true
+
+[tool.ruff]
+target-version = "py314"
+
+[tool.ruff.lint]
+extend-select = ["I", "UP", "B"]
+
+[tool.pyright]
+pythonVersion = "3.14"
+typeCheckingMode = "strict"
