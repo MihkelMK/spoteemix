@@ -28,7 +28,7 @@ def get_spotify_playlist_info(sp: Any, pl_id: str) -> int:
     return int(playlist_info["tracks"]["total"])
 
 
-def shuffle_playlist(
+def main(
     client_secret: str, client_id: str, playlist_link: str, iterations: int
 ) -> None:
     # Used for getting info, no changes being made with this instance

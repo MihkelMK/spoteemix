@@ -2,10 +2,9 @@ from pathlib import Path
 
 import click
 
-from spoteemix.convert.file_spotify import file_sp_convert
-from spoteemix.convert.spotify_deemix import sp_dmx_convert
+from spoteemix.convert import file_to_spotify, spotify_to_deemix
 from spoteemix.helpers.command_helpers import SpotifyClient, pass_spotify
-from spoteemix.utils.shuffle_spotify import shuffle_playlist
+from spoteemix.utils import shuffle_spotify
 
 
 @click.group()
@@ -47,7 +46,7 @@ def std(spotify: SpotifyClient, playlist: str, deemix: str, format: str) -> None
             "Playlist URL doesn't start with http(s) or is otherwise malformed."
         )
 
-    sp_dmx_convert(
+    spotify_to_deemix.main(
         client_id=spotify.id,
         client_secret=spotify.secret,
         deemix_url=deemix,
@@ -71,7 +70,7 @@ def fts(spotify: SpotifyClient, path: Path, name: str) -> None:
     NAME - name of the created playlist
     """
 
-    file_sp_convert(
+    file_to_spotify.main(
         path=path,
         playlist_name=name,
         client_id=spotify.id,
@@ -103,7 +102,7 @@ def sp_shuffle(spotify: SpotifyClient, playlist: str, iter: int) -> None:
 
     PLAYLIST - the URL of the Spotify playlist to download.
     """
-    shuffle_playlist(
+    shuffle_spotify.main(
         client_id=spotify.id,
         client_secret=spotify.secret,
         playlist_link=playlist,

@@ -170,9 +170,7 @@ def parse_files(path: Path) -> list[dict[str, Any]]:
     return tracks
 
 
-def file_sp_convert(
-    path: Path, playlist_name: str, client_id: str, client_secret: str
-) -> None:
+def main(path: Path, playlist_name: str, client_id: str, client_secret: str) -> None:
     scope = "playlist-modify-private"
     sp: Any = spotipy.Spotify(
         client_credentials_manager=SpotifyClientCredentials(

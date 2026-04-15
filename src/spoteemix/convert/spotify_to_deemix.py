@@ -346,7 +346,7 @@ async def parse_playlist(sp: Any, playlist_id: str) -> list[dict[str, Any]]:
     return tracks
 
 
-def sp_dmx_convert(
+def main(
     client_id: str,
     client_secret: str,
     deemix_url: str,
