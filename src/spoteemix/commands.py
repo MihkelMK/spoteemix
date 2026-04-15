@@ -4,12 +4,12 @@ import click
 
 from spoteemix.convert.file_spotify import file_sp_convert
 from spoteemix.convert.spotify_deemix import sp_dmx_convert
-from spoteemix.helpers.command_helpers import pass_spotify
+from spoteemix.helpers.command_helpers import SpotifyClient, pass_spotify
 from spoteemix.utils.shuffle_spotify import shuffle_playlist
 
 
 @click.group()
-def convert():
+def convert() -> None:
     pass
 
 
@@ -32,7 +32,7 @@ def convert():
     show_default=True,
 )
 @pass_spotify
-def std(spotify, playlist, deemix, format):
+def std(spotify: SpotifyClient, playlist: str, deemix: str, format: str) -> None:
     """Download Spotify playlist using Deemix.
 
     PLAYLIST - the URL of the Spotify playlist to download.
@@ -64,7 +64,7 @@ def std(spotify, playlist, deemix, format):
 )
 @click.argument("name", type=click.STRING)
 @pass_spotify
-def fts(spotify, path, name):
+def fts(spotify: SpotifyClient, path: Path, name: str) -> None:
     """Create Spotify playlist from files in PATH.
 
     PATH - where to search for audio files
@@ -84,7 +84,7 @@ convert.add_command(fts)
 
 
 @click.group()
-def utils():
+def utils() -> None:
     pass
 
 
@@ -98,7 +98,7 @@ def utils():
     help="Amount of time to randomly move tracks.",
 )
 @pass_spotify
-def sp_shuffle(spotify, playlist, iter):
+def sp_shuffle(spotify: SpotifyClient, playlist: str, iter: int) -> None:
     """Shuffle the order of tracks in a Spotify playlist.
 
     PLAYLIST - the URL of the Spotify playlist to download.

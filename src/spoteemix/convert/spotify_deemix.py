@@ -1,18 +1,20 @@
 import asyncio
 import re
 import sys
-import urllib
+import urllib.parse
 from time import sleep
+from typing import Any
 
 import aiohttp
 import click
 import spotipy
 from fuzzywuzzy import fuzz, process
-from selenium import webdriver
-from selenium.common.exceptions import NoAlertPresentException
+from selenium.common.exceptions import NoAlertPresentException, TimeoutException
 from selenium.webdriver.common.by import By
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.firefox.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.wait import TimeoutException, WebDriverWait
+from selenium.webdriver.support.wait import WebDriverWait
 from spotipy.oauth2 import SpotifyClientCredentials
 from tqdm.asyncio import tqdm_asyncio
 from tqdm.auto import tqdm
@@ -21,7 +23,7 @@ pl_regex = re.compile(r".*\/playlist\/(\w*)(\?.*)?")
 short_title_regex = re.compile(r"(\(.+\))")
 
 
-def get_spotify_playlist_id(pl_link):
+def get_spotify_playlist_id(pl_link: str) -> str:
     if not (pl_match := re.search(pl_regex, pl_link)):
         sys.exit()
 
@@ -29,20 +31,20 @@ def get_spotify_playlist_id(pl_link):
     return f"spotify:playlist:{pl_id}"
 
 
-def get_spotify_playlist_info(sp, pl_id):
-    playlist_info = sp.playlist(pl_id)
+def get_spotify_playlist_info(sp: Any, pl_id: str) -> None:
+    playlist_info: dict[str, Any] = sp.playlist(pl_id)
     click.secho(f"\nDownloading {playlist_info['name']}", fg="blue", nl=False)
     click.echo(" by ", nl=False)
     click.secho(f"{playlist_info['owner']['display_name']}.", fg="magenta")
 
 
-def get_spotify_track_ids(sp, playlist_id):
+def get_spotify_track_ids(sp: Any, playlist_id: str) -> list[str]:
     offset = 0
 
-    track_ids = []
+    track_ids: list[str] = []
 
     while True:
-        response = sp.playlist_items(
+        response: dict[str, Any] = sp.playlist_items(
             playlist_id,
             offset=offset,
             fields="items.track.id,total",
@@ -61,10 +63,10 @@ def get_spotify_track_ids(sp, playlist_id):
     return track_ids
 
 
-def spotify_track_query(sp, track_id):
-    response = sp.track(track_id)
+def spotify_track_query(sp: Any, track_id: str) -> dict[str, Any]:
+    response: dict[str, Any] = sp.track(track_id)
 
-    track = {"name": response["name"], "artists": []}
+    track: dict[str, Any] = {"name": response["name"], "artists": []}
 
     for artist in response["artists"]:
         track["artists"].append(artist["name"])
@@ -72,8 +74,8 @@ def spotify_track_query(sp, track_id):
     return track
 
 
-async def get_spotify_track_info(sp, track_ids):
-    tracks = []
+async def get_spotify_track_info(sp: Any, track_ids: list[str]) -> list[dict[str, Any]]:
+    tracks: list[dict[str, Any]] = []
 
     # Digits of total track count, for n_fmt padding
     total_digits = str(len(str(len(track_ids))))
@@ -90,21 +92,23 @@ async def get_spotify_track_info(sp, track_ids):
     return tracks
 
 
-def selenium_post(driver, deemix_url, path, params):
-    driver.execute_script(
+def selenium_post(
+    driver: WebDriver, deemix_url: str, path: str, params: dict[str, str]
+) -> None:
+    driver.execute_script(  # type: ignore[reportUnknownMemberType]
         """
     function post(url, path, params, method='post') {
         const form = document.createElement('form');
         form.method = method;
         form.action = url + path;
-    
+
         for (const key in params) {
             if (params.hasOwnProperty(key)) {
             const hiddenField = document.createElement('input');
             hiddenField.type = 'hidden';
             hiddenField.name = key;
             hiddenField.value = params[key];
-    
+
             form.appendChild(hiddenField);
         }
     }
@@ -112,7 +116,7 @@ def selenium_post(driver, deemix_url, path, params):
     document.body.appendChild(form);
     form.submit();
     }
-    
+
     post(arguments[0], arguments[1], arguments[2]);
     """,
         deemix_url,
@@ -134,10 +138,10 @@ def selenium_post(driver, deemix_url, path, params):
         pass
 
 
-def initiate_selenium(deemix_url):
-    options = webdriver.FirefoxOptions()
+def initiate_selenium(deemix_url: str) -> WebDriver:
+    options = FirefoxOptions()
     options.add_argument("-headless")
-    driver = webdriver.Firefox(options=options)
+    driver = WebDriver(options=options)
 
     driver.get(deemix_url)
 
@@ -157,17 +161,19 @@ def initiate_selenium(deemix_url):
     return driver
 
 
-def sort_deemix_tracks(track, found_tracks):
-    choices = []
+def sort_deemix_tracks(
+    track: dict[str, Any], found_tracks: list[Any]
+) -> list[dict[str, Any]]:
+    choices: list[dict[str, Any]] = []
     for i, found in enumerate(found_tracks):
-        title = found["SNG_TITLE"]
-        title_ratio = fuzz.ratio(title, track["name"])
+        title: str = found["SNG_TITLE"]
+        title_ratio: int = fuzz.ratio(title, track["name"])  # type: ignore[reportUnknownMemberType]
 
-        artist_matches = []
+        artist_matches: list[Any] = []
 
         for artist in found["ARTISTS"]:
-            name = artist["ART_NAME"]
-            artist_matches.append(process.extractOne(name, track["artists"]))
+            name: str = artist["ART_NAME"]
+            artist_matches.append(process.extractOne(name, track["artists"]))  # type: ignore[reportUnknownMemberType]
 
         artist_matches = sorted(artist_matches, key=lambda x: -x[1])
 
@@ -184,8 +190,10 @@ def sort_deemix_tracks(track, found_tracks):
     return sorted(choices, key=lambda x: -x["confidence"])
 
 
-def find_best_match(pref_file, found_tracks, choices):
-    best_matches = []
+def find_best_match(
+    pref_file: str, found_tracks: list[Any], choices: list[dict[str, Any]]
+) -> tuple[Any, float]:
+    best_matches: list[dict[str, Any]] = []
 
     for i, choice in enumerate(choices):
         if i + 2 > len(choices) or choices[i + 1]["confidence"] < choice["confidence"]:
@@ -193,26 +201,32 @@ def find_best_match(pref_file, found_tracks, choices):
             break
 
     for match in best_matches:
-        matched_track = found_tracks[match["index"]]
+        matched_track: dict[str, Any] = found_tracks[match["index"]]
         has_flac = matched_track["FILESIZE_FLAC"]
         has_320 = matched_track["FILESIZE_MP3_320"]
         has_128 = matched_track["FILESIZE_MP3_128"]
 
         if pref_file == "flac" and has_flac:
-            return [matched_track, match["confidence"]]
+            return matched_track, match["confidence"]
         elif pref_file == "mp3_320" and has_320:
-            return [matched_track, match["confidence"]]
+            return matched_track, match["confidence"]
         elif pref_file == "mp3_128" and has_128:
-            return [matched_track, match["confidence"]]
+            return matched_track, match["confidence"]
 
     # Didn't find good match with preferred file type, return match with highest confidence
     return found_tracks[best_matches[0]["index"]], best_matches[0]["confidence"]
 
 
-async def deemix_track_search(session, deemix_url, track, expanded, short_title=False):
+async def deemix_track_search(
+    session: aiohttp.ClientSession,
+    deemix_url: str,
+    track: dict[str, Any],
+    expanded: bool,
+    short_title: bool = False,
+) -> tuple[list[Any], list[dict[str, Any]]]:
     try:
         if short_title:
-            title = re.sub(short_title_regex, "", track["name"])
+            title: str = re.sub(short_title_regex, "", track["name"])
         else:
             title = track["name"]
 
@@ -226,8 +240,8 @@ async def deemix_track_search(session, deemix_url, track, expanded, short_title=
         async with session.get(
             f"{deemix_url}/api/mainSearch?term={search_term}"
         ) as resp:
-            json_data = await resp.json()
-            found_tracks = json_data["TRACK"]["data"]
+            json_data: dict[str, Any] = await resp.json()
+            found_tracks: list[Any] = json_data["TRACK"]["data"]
 
             sorted_tracks = sort_deemix_tracks(track, found_tracks)
             return found_tracks, sorted_tracks
@@ -239,7 +253,12 @@ async def deemix_track_search(session, deemix_url, track, expanded, short_title=
         return [], []
 
 
-async def find_track_on_deemix(session, deemix_url, pref_file, track):
+async def find_track_on_deemix(
+    session: aiohttp.ClientSession,
+    deemix_url: str,
+    pref_file: str,
+    track: dict[str, Any],
+) -> tuple[Any, float]:
     # Sometimes artist names confuse the Deemix search, in these cases try to search only by title
     # Confidence threshold of 75 is an arbitrary magic number
     found_tracks, sorted_tracks = await deemix_track_search(
@@ -263,20 +282,24 @@ async def find_track_on_deemix(session, deemix_url, pref_file, track):
     return find_best_match(pref_file, found_tracks, sorted_tracks)
 
 
-def add_to_deemix_cue(deemix, deemix_url, track):
+def add_to_deemix_cue(
+    deemix: WebDriver, deemix_url: str, track: dict[str, Any]
+) -> None:
     data = {"bitrate": "null", "url": f"https://www.deezer.com/track/{track['SNG_ID']}"}
     selenium_post(deemix, deemix_url, "/api/addToQueue", params=data)
 
 
-async def convert_tracks_to_deezer(deemix_url, pref_file, tracks):
-    best_matches = []
-    not_found = []
+async def convert_tracks_to_deezer(
+    deemix_url: str, pref_file: str, tracks: list[dict[str, Any]]
+) -> tuple[list[Any], list[Any]]:
+    best_matches: list[Any] = []
+    not_found: list[Any] = []
 
     # Digits of total track count, for n_fmt padding
     total_digits = str(len(str(len(tracks))))
 
     async with aiohttp.ClientSession() as session:
-        ret = await tqdm_asyncio.gather(
+        ret: list[Any] = await tqdm_asyncio.gather(  # type: ignore[reportUnknownMemberType]
             *(
                 find_track_on_deemix(session, deemix_url, pref_file, track)
                 for track in tracks
@@ -297,7 +320,7 @@ async def convert_tracks_to_deezer(deemix_url, pref_file, tracks):
     return best_matches, not_found
 
 
-def deemix_tracks_to_cue(deemix_url, deezer_matches):
+def deemix_tracks_to_cue(deemix_url: str, deezer_matches: list[Any]) -> None:
     driver = initiate_selenium(deemix_url)
 
     # Digits of total track count, for n_fmt padding
@@ -317,14 +340,20 @@ def deemix_tracks_to_cue(deemix_url, deezer_matches):
     driver.quit()
 
 
-async def parse_playlist(sp, playlist_id):
+async def parse_playlist(sp: Any, playlist_id: str) -> list[dict[str, Any]]:
     track_ids = get_spotify_track_ids(sp, playlist_id)
     tracks = await get_spotify_track_info(sp, track_ids)
     return tracks
 
 
-def sp_dmx_convert(client_id, client_secret, deemix_url, pref_file, playlist_link):
-    sp = spotipy.Spotify(
+def sp_dmx_convert(
+    client_id: str,
+    client_secret: str,
+    deemix_url: str,
+    pref_file: str,
+    playlist_link: str,
+) -> None:
+    sp: Any = spotipy.Spotify(
         client_credentials_manager=SpotifyClientCredentials(
             client_id=client_id, client_secret=client_secret
         )

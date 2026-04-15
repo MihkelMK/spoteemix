@@ -1,6 +1,7 @@
 import re
 import sys
 from random import randint
+from typing import Any
 
 import click
 import spotipy
@@ -10,7 +11,7 @@ from tqdm import tqdm
 pl_regex = re.compile(r".*\/playlist\/(\w*)(\?.*)?")
 
 
-def get_spotify_playlist_id(pl_link):
+def get_spotify_playlist_id(pl_link: str) -> str:
     if not (pl_match := re.search(pl_regex, pl_link)):
         sys.exit()
 
@@ -18,18 +19,20 @@ def get_spotify_playlist_id(pl_link):
     return f"spotify:playlist:{pl_id}"
 
 
-def get_spotify_playlist_info(sp, pl_id):
-    playlist_info = sp.playlist(pl_id)
+def get_spotify_playlist_info(sp: Any, pl_id: str) -> int:
+    playlist_info: dict[str, Any] = sp.playlist(pl_id)
     click.secho(f"\nParsing playlist {playlist_info['name']}", fg="blue", nl=False)
     click.echo(" by ", nl=False)
     click.secho(f"{playlist_info['owner']['display_name']}.", fg="magenta")
 
-    return playlist_info["tracks"]["total"]
+    return int(playlist_info["tracks"]["total"])
 
 
-def shuffle_playlist(client_secret, client_id, playlist_link, iterations):
+def shuffle_playlist(
+    client_secret: str, client_id: str, playlist_link: str, iterations: int
+) -> None:
     # Used for getting info, no changes being made with this instance
-    sp = spotipy.Spotify(
+    sp: Any = spotipy.Spotify(
         client_credentials_manager=SpotifyClientCredentials(
             client_id=client_id, client_secret=client_secret
         )
@@ -40,7 +43,7 @@ def shuffle_playlist(client_secret, client_id, playlist_link, iterations):
 
     # Needed for playlist modifications
     scope = "playlist-modify-private"  # playlist-modify-public doesn't work
-    sp_oauth = spotipy.Spotify(
+    sp_oauth: Any = spotipy.Spotify(
         auth_manager=SpotifyOAuth(
             scope=scope,
             client_id=client_id,
@@ -71,7 +74,8 @@ def shuffle_playlist(client_secret, client_id, playlist_link, iterations):
 
         insert_before = randint(0, track_count - range_length + 1)
 
-        response = sp_oauth.playlist_reorder_items(
+        response: dict[str, Any] | None = sp_oauth.playlist_reorder_items(
             playlist_id, range_start, insert_before, range_length, snapshot_id
         )
-        snapshot_id = response["snapshot_id"]
+        if response is not None:
+            snapshot_id = response["snapshot_id"]

@@ -1,10 +1,12 @@
+from typing import Any
+
 import click
 
 from spoteemix.commands import convert, utils
 from spoteemix.config_helper import load_configs
 from spoteemix.helpers.command_helpers import SpotifyClient
 
-DEFAULT_CONFIG = dict(default_map=load_configs())
+DEFAULT_CONFIG: dict[str, Any] = dict(default_map=load_configs())
 DEFAULT_CONFIG["help_option_names"] = ["-h", "--help"]
 
 
@@ -24,7 +26,7 @@ DEFAULT_CONFIG["help_option_names"] = ["-h", "--help"]
     envvar="SPOTIPY_CLIENT_SECRET",
 )
 @click.pass_context
-def cli(ctx, client_id, client_secret):
+def cli(ctx: click.Context, client_id: str, client_secret: str) -> None:
     ctx.ensure_object(dict)
 
     if len(client_id) != 32 or not client_id.isalnum():

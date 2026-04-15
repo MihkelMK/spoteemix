@@ -45,3 +45,4 @@ extend-select = ["I", "UP", "B"]
 [tool.pyright]
 pythonVersion = "3.14"
 typeCheckingMode = "strict"
+reportMissingTypeStubs = "none"

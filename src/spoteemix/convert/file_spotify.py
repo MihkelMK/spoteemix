@@ -1,5 +1,7 @@
 import asyncio
-import urllib
+import urllib.parse
+from pathlib import Path
+from typing import Any
 
 import click
 import spotipy
@@ -8,19 +10,23 @@ from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
 from tqdm.asyncio import tqdm_asyncio
 
 
-def sort_spotify_tracks(track, found_tracks):
-    choices = []
+def sort_spotify_tracks(
+    track: dict[str, Any], found_tracks: list[Any]
+) -> list[dict[str, Any]]:
+    choices: list[dict[str, Any]] = []
     for i, found in enumerate(found_tracks):
-        title = found["name"]
-        title_ratio = fuzz.ratio(title, track["title"])
+        title: str = found["name"]
+        title_ratio: int = fuzz.ratio(title, track["title"])  # type: ignore[reportUnknownMemberType]
 
         if track["artists"] == []:
-            average_ratio = title_ratio
+            average_ratio: float = float(title_ratio)
         else:
-            artist_matches = []
+            artist_matches: list[Any] = []
             for artist in found["artists"]:
-                name = artist["name"]
-                matching_artist = process.extractOne(name, track["artists"])
+                name: str = artist["name"]
+                matching_artist: Any = process.extractOne(  # type: ignore[reportUnknownMemberType]
+                    name, track["artists"]
+                )
 
                 if matching_artist is not None:
                     artist_matches.append(matching_artist)
@@ -40,8 +46,10 @@ def sort_spotify_tracks(track, found_tracks):
     return sorted(choices, key=lambda x: -x["confidence"])
 
 
-def find_best_match(found_tracks, choices):
-    best_matches = []
+def find_best_match(
+    found_tracks: list[Any], choices: list[dict[str, Any]]
+) -> tuple[Any, float]:
+    best_matches: list[dict[str, Any]] = []
 
     for i, choice in enumerate(choices):
         if i + 2 > len(choices) or choices[i + 1]["confidence"] < choice["confidence"]:
@@ -51,15 +59,19 @@ def find_best_match(found_tracks, choices):
     return found_tracks[best_matches[0]["index"]], best_matches[0]["confidence"]
 
 
-async def spotify_track_search(sp, track):
+async def spotify_track_search(
+    sp: Any, track: dict[str, Any]
+) -> tuple[list[Any], list[dict[str, Any]]]:
     try:
         search_terms = f"{track['title']} {' '.join(track['artists'])}"
 
         search_term = urllib.parse.quote_plus(search_terms)
 
-        result = sp.search(q=search_term, limit=5, offset=0, type="track")
+        result: dict[str, Any] = sp.search(
+            q=search_term, limit=5, offset=0, type="track"
+        )
 
-        found_tracks = result["tracks"]["items"]
+        found_tracks: list[Any] = result["tracks"]["items"]
 
         sorted_tracks = sort_spotify_tracks(track, found_tracks)
         return found_tracks, sorted_tracks
@@ -75,7 +87,7 @@ async def spotify_track_search(sp, track):
         return [], []
 
 
-async def find_track_on_spotify(sp, track):
+async def find_track_on_spotify(sp: Any, track: dict[str, Any]) -> tuple[Any, float]:
     # Confidence threshold of 75 is an arbitrary magic number
     found_tracks, sorted_tracks = await spotify_track_search(sp, track)
 
@@ -86,14 +98,16 @@ async def find_track_on_spotify(sp, track):
     return find_best_match(found_tracks, sorted_tracks)
 
 
-async def tracks_to_spotify(sp, tracks):
-    best_matches = []
-    not_found = []
+async def tracks_to_spotify(
+    sp: Any, tracks: list[dict[str, Any]]
+) -> tuple[list[Any], list[Any]]:
+    best_matches: list[Any] = []
+    not_found: list[Any] = []
 
     # Digits of total track count, for n_fmt padding
     total_digits = str(len(str(len(tracks))))
 
-    ret = await tqdm_asyncio.gather(
+    ret: list[Any] = await tqdm_asyncio.gather(  # type: ignore[reportUnknownMemberType]
         *(find_track_on_spotify(sp, track) for track in tracks),
         desc="Finding songs on Spotify",
         bar_format="{desc}:  {percentage:3.0f}% {bar} {n:"
@@ -111,18 +125,18 @@ async def tracks_to_spotify(sp, tracks):
     return best_matches, not_found
 
 
-def create_spotify_playlist(sp, name, matches):
-    user_id = sp.current_user()["id"]
+def create_spotify_playlist(sp: Any, name: str, matches: list[Any]) -> None:
+    user_id: str = sp.current_user()["id"]
 
-    ret = sp.user_playlist_create(
+    ret: dict[str, Any] = sp.user_playlist_create(
         user=user_id,
         name=name,
         public=False,
         collaborative=False,
         description="Created by spoteemix",
     )
-    playlist_id = ret["id"]
-    playlist_link = ret["external_urls"]["spotify"]
+    playlist_id: str = ret["id"]
+    playlist_link: str = ret["external_urls"]["spotify"]
 
     click.echo("Playlist ", nl=False)
     click.secho(name, fg="blue", nl=False)
@@ -130,7 +144,7 @@ def create_spotify_playlist(sp, name, matches):
     click.secho(playlist_id, fg="magenta", nl=False)
     click.echo(".")
 
-    track_ids = []
+    track_ids: list[str] = []
 
     for match in matches:
         track_ids.append(match["uri"])
@@ -141,9 +155,9 @@ def create_spotify_playlist(sp, name, matches):
     click.echo(playlist_link)
 
 
-def parse_files(path):
+def parse_files(path: Path) -> list[dict[str, Any]]:
     mp3_files = path.glob("*.mp3")
-    tracks = []
+    tracks: list[dict[str, Any]] = []
 
     for file in mp3_files:
         track_info = file.name.replace(".mp3", "")
@@ -156,9 +170,11 @@ def parse_files(path):
     return tracks
 
 
-def file_sp_convert(path, playlist_name, client_id, client_secret):
+def file_sp_convert(
+    path: Path, playlist_name: str, client_id: str, client_secret: str
+) -> None:
     scope = "playlist-modify-private"
-    sp = spotipy.Spotify(
+    sp: Any = spotipy.Spotify(
         client_credentials_manager=SpotifyClientCredentials(
             client_id=client_id, client_secret=client_secret
         )
@@ -185,7 +201,7 @@ def file_sp_convert(path, playlist_name, client_id, client_secret):
     else:
         click.echo("\nStart creating playlist, initiate OAUTH.")
 
-        sp_oauth = spotipy.Spotify(
+        sp_oauth: Any = spotipy.Spotify(
             auth_manager=SpotifyOAuth(
                 scope=scope,
                 client_id=client_id,
